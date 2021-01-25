@@ -266,16 +266,18 @@ class WebServer {
 			String result = "";
 			JSONArray arr = new JSONArray(json_data);
 			for(int i=0; i<arr.length(); i++) {
-				JSONObject obj = arr.getJSONObject(i);
-				System.out.println(obj.get("name"));
-				result = result + obj.get("name");
-
+				JSONObject obj = (JSONObject) arr.get(i);
+				
+				System.out.println(((JSONObject) obj.get("owner")).get("login"));
+				result += ((JSONObject) obj.get("owner")).get("login") + ", ";
+				result += ((JSONObject) obj.get("owner")).get("id") + " -> ";
+				result += obj.get("name");
+				result += "\n";
 			}
 			builder.append("HTTP/1.1 200 OK\n");
 			builder.append("Content-Type: text/html; charset=utf-8\n");
 			builder.append("\n");
-			builder.append("Result is: " + result);
-			builder.append("\n");		
+			builder.append(result);		
 		  }
 		  catch(Exception e) {
 			builder.append("Something went wrong.");
