@@ -25,10 +25,16 @@ import java.util.Random;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.nio.charset.Charset;
+import org.json.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.simple.parser.JSONParser;
+import java.util.*;
 
 class WebServer {
   public static void main(String args[]) {
-    WebServer server = new WebServer(9000);
+    WebServer server = new WebServer(8080);
   }
 
   /**
@@ -202,18 +208,25 @@ class WebServer {
           query_pairs = splitQuery(request.replace("multiply?", ""));
 
           // extract required fields from parameters
-          Integer num1 = Integer.parseInt(query_pairs.get("num1"));
-          Integer num2 = Integer.parseInt(query_pairs.get("num2"));
-
-          // do math
-          Integer result = num1 * num2;
-
-          // Generate response
-          builder.append("HTTP/1.1 200 OK\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("Result is: " + result);
-
+          try{
+	 	Integer num1 = Integer.parseInt(query_pairs.get("num1"));
+          	Integer num2 = Integer.parseInt(query_pairs.get("num2"));
+	  
+          	// do math
+          	Integer result = num1 * num2;
+          	// Generate response
+          	builder.append("HTTP/1.1 200 OK\n");
+          	builder.append("Content-Type: text/html; charset=utf-8\n");
+          	builder.append("\n");
+          	builder.append("Result is: " + result);
+	  }
+	  catch(NumberFormatException e) {
+	 	builder.append("HTTP/1.1 400 Bad Request\n");
+		builder.append("Content-Type: text/html; charset=utf-8\n");
+		builder.append("\n");
+		builder.append("Please try again with valid values.");
+	  }
+	 
           // TODO: Include error handling here with a correct error code and
           // a response that makes sense
 
@@ -228,10 +241,46 @@ class WebServer {
 
           Map<String, String> query_pairs = new LinkedHashMap<String, String>();
           query_pairs = splitQuery(request.replace("github?", ""));
-          String json = fetchURL("https://api.github.com/" + query_pairs.get("query"));
-          System.out.println(json);
 
-          builder.append("Check the todos mentioned in the Java source file");
+	  String tmp = "https://api.github.com/" + query_pairs.get("query");
+          URL url = new URL(tmp);
+	  HttpURLConnection c = (HttpURLConnection)url.openConnection();
+	  int r = c.getResponseCode();
+
+	  if(r != 200) {
+	  	builder.append("Something went wrong.");
+	  }
+	  else {
+		  BufferedReader reader = null;
+		
+		  try {
+		  	reader = new BufferedReader(new InputStreamReader(url.openStream()));
+		  	StringBuffer data = new StringBuffer();
+			int read;
+			char[] chars = new char[1024];
+			while((read = reader.read(chars)) != -1) {
+				data.append(chars, 0, read);
+			}
+			String json_data = data.toString();
+
+			String result = "";
+			JSONArray arr = new JSONArray(json_data);
+			for(int i=0; i<arr.length(); i++) {
+				JSONObject obj = arr.getJSONObject(i);
+				System.out.println(obj.get("name"));
+				result = result + obj.get("name");
+
+			}
+			builder.append("HTTP/1.1 200 OK\n");
+			builder.append("Content-Type: text/html; charset=utf-8\n");
+			builder.append("\n");
+			builder.append("Result is: " + result);
+			builder.append("\n");		
+		  }
+		  catch(Exception e) {
+			builder.append("Something went wrong.");
+		  }
+	  }
           // TODO: Parse the JSON returned by your fetch and create an appropriate
           // response
           // and list the owner name, owner id and name of the public repo on your webpage, e.g.
